@@ -1,13 +1,15 @@
 import fitz
 
-def extract_blocks(pdf_path):
+def extract_pages(pdf_path):
 
     doc = fitz.open(pdf_path)
+
     pages = []
 
     for page in doc:
 
         blocks = page.get_text("blocks")
+        page_text = page.get_text()
 
         page_blocks = []
 
@@ -20,6 +22,11 @@ def extract_blocks(pdf_path):
                 "text": text
             })
 
-        pages.append(page_blocks)
+        pages.append({
+            "text": page_text,
+            "blocks": page_blocks,
+            "width": page.rect.width,
+            "height": page.rect.height
+        })
 
     return pages
