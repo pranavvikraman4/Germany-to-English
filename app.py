@@ -1,6 +1,7 @@
 import streamlit as st
-import base64
 import tempfile
+
+from streamlit_pdf_viewer import pdf_viewer
 
 from services.pdf_loader import extract_blocks
 from services.pdf_translator import translate_blocks
@@ -11,8 +12,11 @@ st.set_page_config(layout="wide")
 
 st.title("Parallel German → English PDF Reader")
 
+uploaded_pdf = st.file_uploader(
+    "Upload German PDF",
+    type=["pdf"]
+)
 
-uploaded_pdf = st.file_uploader("Upload German PDF", type=["pdf"])
 
 if uploaded_pdf:
 
@@ -22,7 +26,7 @@ if uploaded_pdf:
 
     st.info("Extracting text blocks...")
 
-    pages, page_count = extract_blocks(temp_input.name)
+    pages = extract_blocks(temp_input.name)
 
     st.info("Translating content...")
 
@@ -30,7 +34,11 @@ if uploaded_pdf:
 
     temp_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
 
-    render_translated_pdf(temp_input.name, translated_pages, temp_output.name)
+    render_translated_pdf(
+        temp_input.name,
+        translated_pages,
+        temp_output.name
+    )
 
     st.success("Translation completed")
 
@@ -38,26 +46,8 @@ if uploaded_pdf:
 
     with col1:
         st.subheader("German Original")
-
-        with open(temp_input.name, "rb") as f:
-            base64_pdf = base64.b64encode(f.read()).decode("utf-8")
-
-        pdf_display = f"""
-        <iframe src="data:application/pdf;base64,{base64_pdf}"
-        width="100%" height="900" type="application/pdf"></iframe>
-        """
-
-        st.markdown(pdf_display, unsafe_allow_html=True)
+        pdf_viewer(temp_input.name, width=700)
 
     with col2:
         st.subheader("English Translation")
-
-        with open(temp_output.name, "rb") as f:
-            base64_pdf = base64.b64encode(f.read()).decode("utf-8")
-
-        pdf_display = f"""
-        <iframe src="data:application/pdf;base64,{base64_pdf}"
-        width="100%" height="900" type="application/pdf"></iframe>
-        """
-
-        st.markdown(pdf_display, unsafe_allow_html=True)
+        pdf_viewer(temp_output.name, width=700)
