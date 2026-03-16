@@ -1,16 +1,14 @@
 import streamlit as st
 import tempfile
-
+import fitz
+from deep_translator import GoogleTranslator
 from streamlit_pdf_viewer import pdf_viewer
-
-from services.pdf_loader import extract_blocks
-from services.pdf_translator import translate_blocks
-from services.pdf_renderer import render_translated_pdf
 
 
 st.set_page_config(layout="wide")
 
 st.title("Parallel German → English PDF Reader")
+
 
 uploaded_pdf = st.file_uploader(
     "Upload German PDF",
@@ -18,26 +16,104 @@ uploaded_pdf = st.file_uploader(
 )
 
 
+def translate_text(text):
+
+    if not text.strip():
+        return text
+
+    try:
+        translator = GoogleTranslator(source="auto", target="en")
+        return translator.translate(text)
+    except:
+        return text
+
+
+def extract_pages(pdf_path):
+
+    doc = fitz.open(pdf_path)
+
+    pages = []
+
+    for page in doc:
+
+        text = page.get_text()
+
+        pages.append({
+            "text": text,
+            "width": page.rect.width,
+            "height": page.rect.height
+        })
+
+    return pages
+
+
+def translate_pages(pages):
+
+    translated = []
+
+    for page in pages:
+
+        translated_text = translate_text(page["text"])
+
+        translated.append({
+            "text": translated_text,
+            "width": page["width"],
+            "height": page["height"]
+        })
+
+    return translated
+
+
+def build_translated_pdf(pages, output_file):
+
+    new_doc = fitz.open()
+
+    for page in pages:
+
+        new_page = new_doc.new_page(
+            width=page["width"],
+            height=page["height"]
+        )
+
+        rect = fitz.Rect(
+            40,
+            40,
+            page["width"] - 40,
+            page["height"] - 40
+        )
+
+        new_page.insert_textbox(
+            rect,
+            page["text"],
+            fontsize=11
+        )
+
+    new_doc.save(output_file)
+
+
 if uploaded_pdf:
 
-    temp_input = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    temp_input.write(uploaded_pdf.read())
-    temp_input.close()
+    input_temp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    input_temp.write(uploaded_pdf.read())
+    input_temp.close()
 
-    st.info("Extracting text blocks...")
+    st.info("Extracting pages...")
 
-    pages = extract_blocks(temp_input.name)
+    pages = extract_pages(input_temp.name)
 
-    st.info("Translating content...")
+    # LIMIT PAGES FOR SPEED
+    MAX_PAGES = 10
+    pages = pages[:MAX_PAGES]
 
-    translated_pages = translate_blocks(pages)
+    st.info("Translating pages...")
 
-    temp_output = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    translated_pages = translate_pages(pages)
 
-    render_translated_pdf(
-        temp_input.name,
+    output_temp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+
+    build_translated_pdf(
         translated_pages,
-        temp_output.name
+        output_temp.name
     )
 
     st.success("Translation completed")
@@ -46,8 +122,8 @@ if uploaded_pdf:
 
     with col1:
         st.subheader("German Original")
-        pdf_viewer(temp_input.name, width=700)
+        pdf_viewer(input_temp.name, width=700)
 
     with col2:
         st.subheader("English Translation")
-        pdf_viewer(temp_output.name, width=700)
+        pdf_viewer(output_temp.name, width=700)
