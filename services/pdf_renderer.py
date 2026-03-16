@@ -1,27 +1,27 @@
 import fitz
 
-def render_translated_pdf(original_pdf, translated_pages, output_pdf):
+def render_translated_pdf(pages, output_pdf):
 
-    original = fitz.open(original_pdf)
     new_doc = fitz.open()
 
-    for page_index, page in enumerate(original):
+    for page in pages:
 
         new_page = new_doc.new_page(
-            width=page.rect.width,
-            height=page.rect.height
+            width=page["width"],
+            height=page["height"]
         )
 
-        for block in translated_pages[page_index]:
+        rect = fitz.Rect(
+            40,
+            40,
+            page["width"] - 40,
+            page["height"] - 40
+        )
 
-            x0, y0, x1, y1 = block["bbox"]
-
-            rect = fitz.Rect(x0, y0, x1, y1)
-
-            new_page.insert_textbox(
-                rect,
-                block["text"],
-                fontsize=10
-            )
+        new_page.insert_textbox(
+            rect,
+            page["text"],
+            fontsize=11
+        )
 
     new_doc.save(output_pdf)
