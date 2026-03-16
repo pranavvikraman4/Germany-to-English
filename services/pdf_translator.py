@@ -1,22 +1,18 @@
 from utils.translator import translate_text
 
-def translate_blocks(pages):
+def translate_pages(pages):
 
     translated_pages = []
 
     for page in pages:
 
-        new_blocks = []
+        translated_page_text = translate_text(page["text"])
 
-        for block in page:
-
-            translated = translate_text(block["text"])
-
-            new_blocks.append({
-                "bbox": block["bbox"],
-                "text": translated
-            })
-
-        translated_pages.append(new_blocks)
+        translated_pages.append({
+            "text": translated_page_text,
+            "blocks": page["blocks"],
+            "width": page["width"],
+            "height": page["height"]
+        })
 
     return translated_pages
