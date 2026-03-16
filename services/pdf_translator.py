@@ -6,17 +6,17 @@ def translate_blocks(pages):
 
     for page in pages:
 
-        translated_blocks = []
+        new_blocks = []
 
         for block in page:
 
-            translated = translate_text(block["text"], "en")
+            translated = translate_text(block["text"])
 
-            translated_blocks.append({
+            new_blocks.append({
                 "bbox": block["bbox"],
                 "text": translated
             })
 
-        translated_pages.append(translated_blocks)
+        translated_pages.append(new_blocks)
 
     return translated_pages
